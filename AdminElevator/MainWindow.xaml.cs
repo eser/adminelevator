@@ -16,8 +16,57 @@
 		public MainWindow() : base() {
             this.InitializeComponent();
 
+            this.listView.AllowDrop = true;
+            this.listView.DragEnter += this.MainWindow_DragEnter;
+            this.listView.Drop += this.MainWindow_Drop;
+
 			this.GetListFromRegistry(true);
 		}
+
+        /// <summary>
+        /// Adds files into list.
+        /// </summary>
+        /// <returns></returns>
+        protected void AddFiles(string[] files)
+        {
+            RegistryKey _registryKey = this.GetRegistryKey();
+            try
+            {
+                foreach (string _fileName in files)
+                {
+                    _registryKey.SetValue(_fileName, "RUNASADMIN", RegistryValueKind.String);
+                }
+                _registryKey.Flush();
+            }
+            finally
+            {
+                _registryKey.Close();
+            }
+        }
+
+        /// <summary>
+        /// Handles drop event for the window.
+        /// </summary>
+        /// <returns></returns>
+        private void MainWindow_Drop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            this.AddFiles(files);
+
+            this.GetListFromRegistry(false); 
+        }
+
+        /// <summary>
+        /// Handles dragenter event for the window.
+        /// </summary>
+        /// <returns></returns>
+        private void MainWindow_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+        }
 
         /// <summary>
         /// Gets the registry key.
@@ -90,16 +139,7 @@
 				return;
 			}
 
-			RegistryKey _registryKey = this.GetRegistryKey();
-			try {
-				foreach(string _fileName in _openFileDialog.FileNames) {
-					_registryKey.SetValue(_fileName, "RUNASADMIN", RegistryValueKind.String);
-				}
-				_registryKey.Flush();
-			}
-			finally {
-				_registryKey.Close();
-			}
+            this.AddFiles(_openFileDialog.FileNames);
 
 			this.GetListFromRegistry(false);
 		}
